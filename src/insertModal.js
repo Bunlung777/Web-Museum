@@ -24,7 +24,7 @@ const firebaseConfig = {
   const db = getFirestore(app);
   const storage = getStorage(app);
 
-const InsertModal = ({ openModalInsert, setOpenModalInsert })  => {
+const InsertModal = ({ openModalInsert, setOpenModalInsert,noti })  => {
     const [Name, setName] = useState('');
     const [Detail, setDetail] = useState('');
     const [Address, setAddress] = useState('');
@@ -46,11 +46,15 @@ const InsertModal = ({ openModalInsert, setOpenModalInsert })  => {
     const ImgListRef = ref(storage,"images/")
     const [alertMessage, setAlertMessage] = useState('');
 
-    const uploadImg = async () => {
-      const ImgRef = ref(storage, `images/${ImgUpload.name}`);
-      await uploadBytes(ImgRef, ImgUpload);
-      const ImgURL = await getDownloadURL(ImgRef);
-      return ImgURL;
+const uploadImg = async (images) => {
+      const imgURLs = [];
+      for (const img of images) {
+        const ImgRef = ref(storage, `images/${img.name}`);
+        await uploadBytes(ImgRef, img);
+        const ImgURL = await getDownloadURL(ImgRef);
+        imgURLs.push(ImgURL);
+      }
+      return imgURLs;
     };
     
 
@@ -67,41 +71,45 @@ const InsertModal = ({ openModalInsert, setOpenModalInsert })  => {
    
    async function create() {
     try {
-      const ImgUrl = await uploadImg();
-      const museumAppCollection = collection(db, 'MuseumApp');
-      await addDoc(museumAppCollection, {
-        Name: Name,
-        Detail: Detail,
-        Address: Address,
-        Date: Date,
-        Type: Type,
-        ImageUrl: ImgUrl, 
-        Tel: Tel,
-        Time: Time,
-        Fee: Fee,
-        Lat:Lat,
-        Long:Long,
-      });
-      setName('');
-      setDetail('');
-      setAddress('');
-      setDate('');
-      setType('');
-      setTel('');
-      setTime('');
-      setFee('');
-    
-      nameRef.current.value = '';
-      detailRef.current.value = '';
-      addressRef.current.value = '';
-      dateRef.current.value = '';
-      typeRef.current.value = '';
-    
-      alert('Document created successfully!');
+        const imgUrls = await uploadImg(ImgUpload); // ส่งรูปภาพไปยังฟังก์ชัน uploadImg()
+        const museumAppCollection = collection(db, 'MuseumApp');
+        await addDoc(museumAppCollection, {
+            Name: Name,
+            Detail: Detail,
+            Address: Address,
+            Date: Date,
+            Type: Type,
+            ImageUrls: imgUrls, // บันทึก URL ของรูปภาพในรูปแบบของอาร์เรย์
+            Tel: Tel,
+            Time: Time,
+            Fee: Fee,
+            Lat: Lat,
+            Long: Long,
+        });
+
+        // ล้างค่าตัวแปรที่ใช้สำหรับข้อมูลฟอร์มหลังจากบันทึก
+        setName('');
+        setDetail('');
+        setAddress('');
+        setDate('');
+        setType('');
+        setTel('');
+        setTime('');
+        setFee('');
+
+        // ล้างค่าในฟอร์มหลังจากบันทึก
+        nameRef.current.value = '';
+        detailRef.current.value = '';
+        addressRef.current.value = '';
+        dateRef.current.value = '';
+        typeRef.current.value = '';
+
+        alert('Document created successfully!');
     } catch (error) {
-      console.error('Error adding document: ', error);
+        console.error('Error adding document: ', error);
     }
-  }
+}
+
   
   const notify = () => toast("Wow so easy!");
 
@@ -182,13 +190,18 @@ const InsertModal = ({ openModalInsert, setOpenModalInsert })  => {
                         />
                     </div>
                     <div>
-                        <label for="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">รูปภาพพิพิธภัณฑ์</label>
-                        <input type="file" 
-                          className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50" 
-                          onChange={(event) => {setImgUpload(event.target.files[0])}} // ปรับเปลี่ยน setImgUpload ตามตัวแปรที่ใช้
-                        />
-                        {ImgUpload && <img src={URL.createObjectURL(ImgUpload)} alt="museum" className="mt-4 rounded-lg" style={{ width: "100%", height:300}} />}
-                      </div>
+                    <label for="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">รูปภาพพิพิธภัณฑ์</label>
+                    <input type="file" 
+                        className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50" 
+                        onChange={(event) => {setImgUpload(event.target.files)}} // ปรับเปลี่ยน setImgUpload ตามตัวแปรที่ใช้
+                        multiple // เพิ่ม attribute multiple เพื่อให้สามารถเลือกรูปหลายรูปได้
+                    />
+                    {ImgUpload && 
+                        Array.from(ImgUpload).map((image, index) => (
+                            <img key={index} src={URL.createObjectURL(image)} alt={`museum_${index}`} className="mt-4 rounded-lg" style={{ width: "100%", height: 300 }} />
+                        ))
+                    }
+                </div>
 
                     <div>
                         <label for="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">รายละเอียดพิพิธภัณฑ์</label>
@@ -214,8 +227,29 @@ const InsertModal = ({ openModalInsert, setOpenModalInsert })  => {
                         />
                     </div>
                     <div>
+                        <label for="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">ช่วงเวลาทำการ </label>
+                        <input type="text" 
+                        className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 " 
+                        required
+                        ref={detailRef}
+                        onChange={(event) => {
+                          setDate(event.target.value)
+                        }}
+                        />
+                    </div>
+                    <div>
+                        <label for="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">ช่วงเวลาแนะนำ</label>
+                        <input type="text"   
+                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 " 
+                        required
+                        ref={dateRef}
+                        onChange={(event) => {
+                          setTime(event.target.value)
+                        }}
+                        />
+                    </div>
+                    {/* <div>
                     <div className="flex gap-4">
-          {/* Start time */}
           <div className="flex-1">
             <label htmlFor="start-time" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Start time:
@@ -240,7 +274,6 @@ const InsertModal = ({ openModalInsert, setOpenModalInsert })  => {
             </div>
           </div>
 
-          {/* End time */}
           <div className="flex-1">
             <label htmlFor="end-time" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               End time:
@@ -267,7 +300,7 @@ const InsertModal = ({ openModalInsert, setOpenModalInsert })  => {
 
 
             </div>
-            </div>
+            </div> */}
                     <div>
                         <label for="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">โทรศัพท์</label>
                         <input type="text"   
@@ -279,17 +312,7 @@ const InsertModal = ({ openModalInsert, setOpenModalInsert })  => {
                         }}
                         />
                     </div>
-                    <div>
-                        <label for="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">ช่วงเวลาแนะนำ</label>
-                        <input type="text"   
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 " 
-                        required
-                        ref={dateRef}
-                        onChange={(event) => {
-                          setTime(event.target.value)
-                        }}
-                        />
-                    </div>
+
                     <div>
                         <label for="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">ค่าเข้าชม</label>
                         <input type="text"   
@@ -325,25 +348,12 @@ const InsertModal = ({ openModalInsert, setOpenModalInsert })  => {
                     </div>
                     <div>
                     <label for="countries" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">ประเภทพิพิธภัณฑ์</label>
-                    <select id="countries" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                      <option value="ศิลปะ" 
-                      onChange={(event)=>{
-                      setType(event.target.value)
-                      }}>
-                        ศิลปะ
-                      </option>
-                      <option 
-                      value="ท้องถิ่น" 
-                      onChange={(event)=>{
-                      setType(event.target.value)
-                      }}>
-                      ท้องถิ่น
-                      </option>
-                      <option value="วิทยาศาสตร์"
-                      onChange={(event)=>{
-                      setType(event.target.value)
-                       }}>วิทยาศาสตร์</option>
-                    </select>
+                    <select id="countries" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
+                    onChange={(event) => setType(event.target.value)}>
+                    <option value="ศิลปะ">ศิลปะ</option>
+                    <option value="ท้องถิ่น">ท้องถิ่น</option>
+                    <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
+                  </select>
                     </div>
                     <div class="flex justify-end space-x-4">
                         <div>
@@ -354,11 +364,13 @@ const InsertModal = ({ openModalInsert, setOpenModalInsert })  => {
                     <div>
                     <button type="submit" name="submit" class=" h-12 px-6 text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 dark:focus:ring-green-800 font-normal rounded-lg text-sm py-2.5 text-center" 
                     onClick={() => {
-                    setOpenModalInsert(false); 
-                    create()
-                    uploadImg()
-                    addTimeRange()
-                          }}>Submit</button>
+                      setOpenModalInsert(false); 
+                      noti();
+                      uploadImg(ImgUpload).then(() => {
+                          create();
+                          // addTimeRange();
+                      });
+                  }}>Submit</button>
                     </div>   
                 </div>
                 </form>

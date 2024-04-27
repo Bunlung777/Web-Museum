@@ -153,7 +153,7 @@ function App({noitfy}) {
                 </p>
               </button>
               {/* Pass the openModal state to InsertModal component */}
-              {openModalInsert && <InsertModal openModalInsert={openModalInsert} setOpenModalInsert={setOpenModalInsert} />}
+              {openModalInsert && <InsertModal openModalInsert={openModalInsert} setOpenModalInsert={setOpenModalInsert} noti={noti} />}
             </div>
         </div>
         </div>
@@ -186,7 +186,7 @@ function App({noitfy}) {
   <tr key={item.Id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 mt-5">
     <td className="px-6 py-3 font-normal text-gray-60">{index+1}</td>
       <td  className="px-4 py-2 font-normal text-gray-60">
-        <img alt="Food" src={item.ImageUrl} width={150} height={100} className="rounded-lg thumbnail" />
+        <img alt="Food" src={item.ImageUrls[0]} width={150} height={100} className="rounded-lg thumbnail" />
       </td>
       <td className='px-6 py-3 font-normal text-gray-60'>{item.Name}</td>
       {/* <td className='px-6 py-3 font-normal text-gray-60'>{item.Detail}</td> */}

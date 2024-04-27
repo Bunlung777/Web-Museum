@@ -31,9 +31,11 @@ const EditModal = ({ openModal, setOpenModal, editData,noti})  => {
     const [updatedDate, setUpdatedDate] = useState(editData.Date);
     const [updatedType, setUpdatedType] = useState(editData.Type);
     const [updatedImg, setUpdatedImg] = useState();
-    const [ImgPreView, setImgPreView] = useState(editData.ImageUrl);
+    const [ImgPreView, setImgPreView] = useState(editData.ImageUrls);
     const [updatedLat, setUpdatedLat] = useState(editData.Lat);
     const [updatedLong, setUpdatedLong] = useState(editData.Long);
+    const [updatedTel, setUpdatedTel] = useState(editData.Tel);
+    const [updatedTime, setUpdatedTime] = useState(editData.Time);
     const [notify,setNotify] = useState();
 
     async function updateData(documentId, newData) {
@@ -54,7 +56,9 @@ const EditModal = ({ openModal, setOpenModal, editData,noti})  => {
                 Date: updatedDate,
                 Type: updatedType,
                 Lat: updatedLat,
-                Long: updatedLong
+                Long: updatedLong,
+                Tel:updatedTel,
+                Time:updatedTime,
             };
         } else {
             newData = {
@@ -65,21 +69,25 @@ const EditModal = ({ openModal, setOpenModal, editData,noti})  => {
                 Type: updatedType,
                 ImageUrl : imgUrl,
                 Lat: updatedLat,
-                Long: updatedLong
+                Long: updatedLong,
+                Tel:updatedTel,
+                Time:updatedTime,
             };
         }
         await updateData(editData.id, newData);
     };
     
 
-      const uploadImg = async () => {
-        if (updatedImg == null) 
-        return updatedImg;
-        const ImgRef = ref(storage, `images/${updatedImg.name}`);
-        await uploadBytes(ImgRef, updatedImg);
-        const ImgURL = getDownloadURL(ImgRef);
-        return ImgURL;
-      };
+    const uploadImg = async (images) => {
+      const imgURLs = [];
+      for (const img of images) {
+        const ImgRef = ref(storage, `images/${img.name}`);
+        await uploadBytes(ImgRef, img);
+        const ImgURL = await getDownloadURL(ImgRef);
+        imgURLs.push(ImgURL);
+      }
+      return imgURLs;
+    };
       
   return (
     <div >
@@ -150,7 +158,10 @@ const EditModal = ({ openModal, setOpenModal, editData,noti})  => {
                       setImgPreView(URL.createObjectURL(event.target.files[0]))}
                   }
                   />
-                    {ImgPreView && <img src={ImgPreView} alt="museum" className="mt-4 rounded-lg" style={{ width: "100%", height:300}} />}
+                          {ImgPreView.map((image, index) => (
+                            <img key={index} src={image} alt={`museum_${index}`} className="mt-4 rounded-lg" style={{ width: "100%", height: 300 }} />
+                        ))
+                    }
                 </div>
 
                     <div>
@@ -173,7 +184,7 @@ const EditModal = ({ openModal, setOpenModal, editData,noti})  => {
                          />
                     </div>
                     <div>
-                        <label for="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">เวลาทำการ</label>
+                        <label for="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">ช่วงเวลาทำการ</label>
                         <input type="text"
                         defaultValue={editData.Date}
                          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 "
@@ -183,17 +194,27 @@ const EditModal = ({ openModal, setOpenModal, editData,noti})  => {
                           />
                     </div>
                     <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">ประเภทพิพิธภัณฑ์</label>
-                    <select  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                       onChange={(event)=>{
-                       setUpdatedType(event.target.value)
-                    }}
-                    >
-                      <option>ศิลปะ</option>
-                      <option>ท้องถิ่น</option>
-                      <option>วิทยาศาสตร์</option>
-                    </select>
+                        <label for="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">ช่วงเวลาแนะนำ</label>
+                        <input type="text"
+                        defaultValue={editData.Time}
+                         className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 "
+                         onChange={(event) => {
+                          setUpdatedTime(event.target.value)
+                        }}
+                          />
                     </div>
+                    <div>
+                        <label for="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">โทรศัพท์</label>
+                        <input type="text"
+                        defaultValue={editData.Tel}
+                         className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 "
+                         onChange={(event) => {
+                          setUpdatedTel(event.target.value)
+                        }}
+                          />
+                    </div>
+                    
+
                     <div>
                         <label for="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">ละติจูด</label>
                         <input type="text"
@@ -213,6 +234,18 @@ const EditModal = ({ openModal, setOpenModal, editData,noti})  => {
                           setUpdatedLong(event.target.value)
                         }}
                          />
+                   <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">ประเภทพิพิธภัณฑ์</label>
+                    <select  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                       onChange={(event)=>{
+                       setUpdatedType(event.target.value)
+                    }}
+                    >
+                      <option>ศิลปะ</option>
+                      <option>ท้องถิ่น</option>
+                      <option>วิทยาศาสตร์</option>
+                    </select>
+                    </div>
                     </div>
                     <div class="flex justify-end space-x-4">
                         <div>
